@@ -1,0 +1,460 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <Windows.h>
+
+using namespace std;
+
+// Класс для представления фильма
+class Film {
+public:
+    string title;
+    string director;
+    int year;
+    string actors;
+    string mainCharacter;
+    string genre;
+
+    Film(const string& title, const string& director, int year, const string& actors, const string& mainCharacter, const string& genre)
+        : title(title), director(director), year(year), actors(actors), mainCharacter(mainCharacter), genre(genre) {}
+
+    // Метод для преобразования фильма в строку в формате, соответствующем сохранению в файле
+    string toFileFormat() const {
+        string result;
+        result += "\"" + title + "\"\n";
+        result += "Режиссёр: " + director + "\n";
+        result += "Год выхода: " + to_string(year) + "\n";
+        result += "Актёры: " + actors + "\n";
+        result += "Главный герой: " + mainCharacter + "\n";
+        result += "Жанр: " + genre + "\n";
+        return result;
+    }
+
+private:
+    // Разделяет список актёров на отдельные имена
+    vector<string> splitActors() const {
+        vector<string> result;
+        string currentActor;
+
+        for (char c : actors) {
+            if (c == ',') {
+                result.push_back(currentActor);
+                currentActor.clear();
+            }
+            else {
+                currentActor += c;
+            }
+        }
+
+        // Добавляем последнего актёра
+        result.push_back(currentActor);
+
+        return result;
+    }
+};
+
+
+// Класс для сервиса "Киноман"
+class FilmService {
+private:
+    vector<Film> films;
+
+public:
+    // Загрузка данных о фильмах из файла
+    void loadFilmsFromFile(const string& filename) {
+        ifstream file(filename);
+
+        if (file.is_open()) {
+            string line;
+            while (getline(file, line)) {
+                if (line.empty()) continue;
+
+                string title = line.substr(1, line.length() - 2);
+
+                getline(file, line);
+                string director = line.substr(10);
+
+                getline(file, line);
+                int year = stoi(line.substr(12));
+
+                getline(file, line);
+                string actors = line.substr(8);
+
+                getline(file, line);
+                string mainCharacter = line.substr(15);
+
+                getline(file, line);
+                string genre = line.substr(6);
+
+                Film film(title, director, year, actors, mainCharacter, genre);
+                films.push_back(film);
+            }
+
+            file.close();
+        }
+        else {
+            cout << "Не удалось открыть файл." << endl;
+        }
+
+    }
+
+    // Сохранение данных о фильмах в файл
+    void saveFilmsToFile(const string& filename) {
+        ofstream file(filename);
+
+        if (file.is_open()) {
+            for (const Film& film : films) {
+                file << film.toFileFormat() << endl;
+            }
+
+            file.close();
+        }
+        else {
+            cout << "Не удалось создать файл." << endl;
+        }
+    }
+
+    // Поиск фильма по названию
+    vector<Film> searchByTitle(const string& title) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            if (film.title == title) {
+                result.push_back(film);
+            }
+        }
+
+        return result;
+    }
+
+    // Поиск фильма по режиссеру
+    vector<Film> searchByDirector(const vector<string>& director) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            for (const string& direct : director) {
+                if (film.director.find(direct) != string::npos) {
+                    result.push_back(film);
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Поиск фильма по году выхода
+    vector<Film> searchByYear(int year) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            if (film.year == year) {
+                result.push_back(film);
+            }
+        }
+
+        return result;
+    }
+
+    // Поиск фильма по актёрам / по актёру
+    vector<Film> searchByActors(const vector<string>& actors) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            for (const string& actor : actors) {
+                if (film.actors.find(actor) != string::npos) {
+                    result.push_back(film);
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Поиск фильма по главному герою
+    vector<Film> searchByMainCharacter(const string& mainCharacter) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            if (film.mainCharacter == mainCharacter) {
+                result.push_back(film);
+            }
+        }
+
+        return result;
+    }
+
+    // Поиск фильма по жанру
+    vector<Film> searchByGenre(const vector<string>& genre) {
+        vector<Film> result;
+
+        for (const Film& film : films) {
+            for (const string& genres : genre) {
+                if (film.genre.find(genres) != string::npos) {
+                    result.push_back(film);
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Добавление фильма
+    void addFilm(const Film& film) {
+        films.push_back(film);
+    }
+};
+
+int main() {
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    FilmService filmService;
+    filmService.loadFilmsFromFile("films.txt");
+
+    cout << "Добро пожаловать в сервис \"Киноман\"!\n" << endl;
+
+    while (true) {
+        cout << endl;
+        cout << "Выберите одно из действий:\n" << endl;
+        cout << "1. Поиск фильма по названию" << endl;
+        cout << "2. Поиск фильма по режиссёру" << endl;
+        cout << "3. Поиск фильма по году выхода" << endl;
+        cout << "4. Поиск фильма по актёрам / по актёру" << endl;
+        cout << "5. Поиск фильма по главному герою" << endl;
+        cout << "6. Поиск фильма по жанру" << endl;
+        cout << "7. Добавить фильм со своими данными" << endl;
+        cout << "0. Выход" << endl;
+        cout << "\nВаш выбор: ";
+
+        int choice;
+        cin >> choice;
+
+        cin.ignore();
+
+        switch (choice) {
+        case 1: {
+            cout << "\nВведите полное название фильма: ";
+            string title;
+            getline(cin, title);
+
+            vector<Film> films = filmService.searchByTitle(title);
+
+            if (films.empty()) {
+                cout << "\nФильм с названием '" << title << "' не найден." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов с названием '" << title << "':\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 2: {
+            cout << "\nВведите режиссёра фильма (если несколько - через запятую): ";
+            string directInput;
+            getline(cin, directInput);
+
+            vector<string> direct;
+            size_t startPos = 0;
+            size_t commaPos = directInput.find(',');
+
+            // Разбиваем строку на отдельных режиссёров
+            while (commaPos != string::npos) {
+                string director = directInput.substr(startPos, commaPos - startPos);
+                direct.push_back(director);
+                startPos = commaPos + 1;
+                commaPos = directInput.find(',', startPos);
+            }
+
+            // Добавляем последнего режиссёра
+            string lastDir = directInput.substr(startPos);
+            direct.push_back(lastDir);
+
+            vector<Film> films = filmService.searchByDirector(direct);
+
+            if (films.empty()) {
+                cout << "\nФильмы с режиссёрами '" << directInput << "' не найдены." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов с режиссёрами '" << directInput << "':\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 3: {
+            cout << "\nВведите год выхода фильма: ";
+            int year;
+            cin >> year;
+
+            cin.ignore();
+
+            vector<Film> films = filmService.searchByYear(year);
+
+            if (films.empty()) {
+                cout << "\nФильмы, вышедшие в " << year << " году, не найдены." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов, вышедших в " << year << " году:\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 4: {
+            cout << "\nВведите актёров / актёра фильма (если несколько - через запятую): ";
+            string actorsInput;
+            getline(cin, actorsInput);
+
+            vector<string> actors;
+            size_t startPos = 0;
+            size_t commaPos = actorsInput.find(',');
+
+            // Разбиваем строку на отдельных актёров
+            while (commaPos != string::npos) {
+                string actor = actorsInput.substr(startPos, commaPos - startPos);
+                actors.push_back(actor);
+                startPos = commaPos + 1;
+                commaPos = actorsInput.find(',', startPos);
+            }
+
+            // Добавляем последнего актёра
+            string lastActor = actorsInput.substr(startPos);
+            actors.push_back(lastActor);
+
+            vector<Film> films = filmService.searchByActors(actors);
+
+            if (films.empty()) {
+                cout << "\nФильмы с актёрами '" << actorsInput << "' не найдены." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов с актёрами '" << actorsInput << "':\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 5: {
+            cout << "\nВведите главного героя фильма: ";
+            string mainCharacter;
+            getline(cin, mainCharacter);
+
+            vector<Film> films = filmService.searchByMainCharacter(mainCharacter);
+
+            if (films.empty()) {
+                cout << "\nФильмы с главным героем '" << mainCharacter << "' не найдены." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов с главным героем '" << mainCharacter << "':\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 6: {
+            cout << "\nВведите жанр фильма (если несколько - через запятую): ";
+            string genreInput;
+            getline(cin, genreInput);
+
+            vector<string> genres;
+            size_t startPos = 0;
+            size_t commaPos = genreInput.find(',');
+
+            // Разбиваем строку на отдельные жанры
+            while (commaPos != string::npos) {
+                string genre = genreInput.substr(startPos, commaPos - startPos);
+                genres.push_back(genre);
+                startPos = commaPos + 1;
+                commaPos = genreInput.find(',', startPos);
+            }
+
+            // Добавляем последний жанр
+            string lastGenre = genreInput.substr(startPos);
+            genres.push_back(lastGenre);
+
+            vector<Film> films = filmService.searchByGenre(genres);
+
+            if (films.empty()) {
+                cout << "\nФильмы с жанром '" << genreInput << "' не найдены." << endl;
+            }
+            else {
+                cout << "\nРезультаты поиска фильмов жанра '" << genreInput << "':\n" << endl;
+                for (const Film& film : films) {
+                    cout << "-----------------------------------------------------" << endl;
+                    cout << film.toFileFormat();
+                    cout << "-----------------------------------------------------\n" << endl;
+                }
+            }
+
+            break;
+        }
+        case 7: {
+            cout << "\nВведите название фильма: ";
+            string title;
+            getline(cin, title);
+
+            cout << "\nВведите имя режиссера: ";
+            string director;
+            getline(cin, director);
+
+            cout << "\nВведите год выхода фильма: ";
+            int year;
+            cin >> year;
+
+            cin.ignore();
+
+            cout << "\nВведите актёров/актёра фильма: ";
+            string actors;
+            getline(cin, actors);
+
+            cout << "\nВведите главного героя фильма: ";
+            string mainCharacter;
+            getline(cin, mainCharacter);
+
+            cout << "\nВведите жанр фильма: ";
+            string genre;
+            getline(cin, genre);
+
+            Film film(title, director, year, actors, mainCharacter, genre);
+            filmService.addFilm(film);
+            filmService.saveFilmsToFile("films.txt");
+
+            cout << "\nФильм успешно добавлен!" << endl;
+
+            break;
+        }
+        case 0: {
+            cout << "\nСпасибо, что воспользовались данным сервисом! До свидания!" << endl;
+            return 0;
+        }
+        default: {
+            cout << "\nНекорректный выбор. Попробуйте снова." << endl;
+            break;
+        }
+        }
+    }
+}
